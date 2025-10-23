@@ -781,8 +781,8 @@ with st.container(border=True):
         attendance = st.number_input("Attendance (%)", min_value=0.0, max_value=100.0, value=80.0, step=1.0, label_visibility="visible")
     with col3:
         previous_marks = st.number_input("Previous Marks", min_value=0.0, max_value=100.0, value=65.0, step=1.0, label_visibility="visible")
-        st.caption("📊 Based on last exam/assessment")
     
+    # Row 2: Study Hours, Internet Usage, Sleep Hours
     col1, col2, col3 = st.columns(3, gap="medium")
     with col1:
         study_hours = st.number_input("Study Hours (per day)", min_value=0.0, max_value=16.0, value=4.0, step=0.5, label_visibility="visible")
@@ -790,6 +790,8 @@ with st.container(border=True):
         internet_usage = st.number_input("Internet Usage (hrs/day)", min_value=0.0, max_value=16.0, value=3.0, step=0.5, label_visibility="visible")
     with col3:
         sleep_hours = st.number_input("Sleep Hours (per day)", min_value=0.0, max_value=16.0, value=7.0, step=0.5, label_visibility="visible")
+    
+    st.caption("📊 Based on last exam/assessment")
     
     # Predict button - full width
     predict_btn = st.button("🔮 Predict Marks", type="primary", use_container_width=True)
@@ -834,11 +836,29 @@ with st.container(border=True):
                 st.metric("Gap to Perfect", f"{performance_gap:.1f}", delta=f"-{performance_gap:.1f}" if performance_gap > 0 else None)
 
             st.markdown("### 📊 Performance Analysis")
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 st.info(f"**Previous Marks:** {previous_marks:.1f}")
             with col2:
                 st.info(f"**Predicted Marks:** {pred:.1f}")
+            with col3:
+                improvement_pct = ((pred - previous_marks) / previous_marks * 100) if previous_marks > 0 else 0
+                st.info(f"**Change:** {improvement_pct:+.1f}%")
+            
+            st.markdown("### 🔍 Study Factors Analysis")
+            factors_col1, factors_col2 = st.columns(2)
+            with factors_col1:
+                st.markdown("**Your Current Profile:**")
+                st.write(f"• Study Hours: {study_hours:.1f} hrs/day")
+                st.write(f"• Attendance: {attendance:.1f}%")
+                st.write(f"• Sleep Hours: {sleep_hours:.1f} hrs/day")
+                st.write(f"• Internet Usage: {internet_usage:.1f} hrs/day")
+            with factors_col2:
+                st.markdown("**Efficiency Breakdown:**")
+                st.write(f"• Study Dedication: {'✅ Good' if study_hours >= 4 else '⚠️ Needs Improvement'}")
+                st.write(f"• Class Participation: {'✅ Excellent' if attendance >= 90 else '⚠️ Needs Improvement' if attendance >= 75 else '❌ Critical'}")
+                st.write(f"• Rest Quality: {'✅ Optimal' if 7 <= sleep_hours <= 9 else '⚠️ Needs Adjustment'}")
+                st.write(f"• Focus Level: {'✅ Good' if internet_usage <= 2 else '⚠️ Needs Improvement' if internet_usage <= 4 else '❌ Critical'}")
             
             st.markdown("### 💡 General Recommendations")
             for rec in recommendations:
@@ -846,9 +866,11 @@ with st.container(border=True):
             
             if improvement_recs:
                 st.markdown("### 🚀 How to Improve Your Marks")
-                for rec in improvement_recs:
+                st.markdown(f"**Goal:** Reach {max(previous_marks + 4, 80):.0f}% or higher")
+                
+                for idx, rec in enumerate(improvement_recs, 1):
                     with st.container(border=True):
-                        st.markdown(f"**{rec['action']}**")
+                        st.markdown(f"**{idx}. {rec['action']}**")
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             st.metric("Current", rec['current'])
@@ -856,8 +878,8 @@ with st.container(border=True):
                             st.metric("Target", rec['target'])
                         with col3:
                             st.metric("Impact", rec['impact'])
-                        st.markdown(f"**Result:** {rec['description']}")
-                        st.markdown(f"**New Expected Score:** `{rec['new_score']}`")
+                        st.markdown(f"💡 {rec['description']}")
+                        st.markdown(f"**Expected Score:** `{rec['new_score']}`")
             
             st.markdown("### 🕐 Study Schedule Tips")
             for tip in schedule_tips:
@@ -884,6 +906,79 @@ with st.container(border=True):
                 yaxis_range=[0, 105]
             )
             st.plotly_chart(fig, use_container_width=True)
+
+            st.markdown("### 🎯 Study Optimization Tips")
+            tips_col1, tips_col2 = st.columns(2)
+            with tips_col1:
+                st.markdown("**Time Management:**")
+                if study_hours < 3:
+                    st.write("• Start with 30-min focused sessions")
+                    st.write("• Gradually increase to 1-2 hour blocks")
+                elif study_hours < 5:
+                    st.write("• Use Pomodoro technique (25 min focus + 5 min break)")
+                    st.write("• Take a longer break every 2 hours")
+                else:
+                    st.write("• Maintain your current schedule")
+                    st.write("• Ensure breaks every 90 minutes")
+            
+            with tips_col2:
+                st.markdown("**Focus Enhancement:**")
+                if internet_usage > 4:
+                    st.write("• Use app blockers during study time")
+                    st.write("• Keep phone in another room")
+                    st.write("• Set specific times for internet use")
+                else:
+                    st.write("• Your internet discipline is excellent")
+                    st.write("• Maintain this focus level")
+
+            st.markdown("### ⚠️ Risk Factors & Alerts")
+            risk_factors = []
+            if study_hours < 2:
+                risk_factors.append("🔴 Critical: Study hours too low - marks at risk")
+            elif study_hours < 3:
+                risk_factors.append("🟡 Warning: Study hours below recommended minimum")
+            
+            if attendance < 60:
+                risk_factors.append("🔴 Critical: Attendance too low - missing important content")
+            elif attendance < 75:
+                risk_factors.append("🟡 Warning: Attendance below recommended level")
+            
+            if sleep_hours < 5 or sleep_hours > 11:
+                risk_factors.append("🔴 Critical: Sleep pattern affecting performance")
+            elif sleep_hours < 6 or sleep_hours > 10:
+                risk_factors.append("🟡 Warning: Sleep pattern needs adjustment")
+            
+            if internet_usage > 6:
+                risk_factors.append("🔴 Critical: Internet usage too high - affecting focus")
+            elif internet_usage > 4:
+                risk_factors.append("🟡 Warning: Internet usage affecting study quality")
+            
+            if pred < previous_marks - 5:
+                risk_factors.append("🔴 Critical: Predicted marks significantly lower than previous")
+            elif pred < previous_marks:
+                risk_factors.append("🟡 Warning: Predicted marks lower than previous - review strategy")
+            
+            if risk_factors:
+                for risk in risk_factors:
+                    st.warning(risk)
+            else:
+                st.success("✅ No critical risk factors detected - Keep up the good work!")
+
+            st.markdown("### 📊 Peer Benchmarking")
+            avg_marks = data[TARGET_COLUMN].mean() if TARGET_COLUMN in data.columns else 70
+            avg_study = data['Study_Hours'].mean() if 'Study_Hours' in data.columns else 4
+            avg_attendance = data['Attendance'].mean() if 'Attendance' in data.columns else 80
+            
+            bench_col1, bench_col2, bench_col3 = st.columns(3)
+            with bench_col1:
+                vs_avg = "✅ Above" if pred > avg_marks else "⚠️ Below"
+                st.metric("vs Class Average", f"{vs_avg}", delta=f"{pred - avg_marks:+.1f}")
+            with bench_col2:
+                study_vs = "✅ More" if study_hours > avg_study else "⚠️ Less"
+                st.metric("Study Hours vs Avg", f"{study_vs}", delta=f"{study_hours - avg_study:+.1f}h")
+            with bench_col3:
+                attend_vs = "✅ Higher" if attendance > avg_attendance else "⚠️ Lower"
+                st.metric("Attendance vs Avg", f"{attend_vs}", delta=f"{attendance - avg_attendance:+.1f}%")
 
             record_df = make_prediction_record(
                 student_name, study_hours, attendance, sleep_hours, internet_usage, previous_marks, pred, st.session_state.get("model_meta", {})
