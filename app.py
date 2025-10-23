@@ -443,9 +443,8 @@ def get_improvement_recommendations(study_hours: float, attendance: float, sleep
     """Generate specific improvement actions to reach target marks"""
     recommendations = []
     improvement_gap = previous_marks - predicted_marks
-    target_marks = max(previous_marks + 4, 80)  # Target is at least 4 points above previous or 80
+    target_marks = max(previous_marks + 4, 80)
     
-    # If predicted is lower than previous, suggest improvements
     if improvement_gap > 0:
         # Study hours improvement
         if study_hours < 5:
@@ -455,7 +454,7 @@ def get_improvement_recommendations(study_hours: float, attendance: float, sleep
             new_pred = max(0.0, min(100.0, new_pred))
             improvement = new_pred - predicted_marks
             recommendations.append({
-                "action": f"📚 Increase Study Hours",
+                "action": "📚 Increase Study Hours",
                 "current": f"{study_hours:.1f} hrs/day",
                 "target": f"{new_study_hours:.1f} hrs/day",
                 "impact": f"+{improvement:.1f} marks",
@@ -471,7 +470,7 @@ def get_improvement_recommendations(study_hours: float, attendance: float, sleep
             new_pred = max(0.0, min(100.0, new_pred))
             improvement = new_pred - predicted_marks
             recommendations.append({
-                "action": f"📍 Improve Attendance",
+                "action": "📍 Improve Attendance",
                 "current": f"{attendance:.1f}%",
                 "target": f"{new_attendance:.1f}%",
                 "impact": f"+{improvement:.1f} marks",
@@ -487,7 +486,7 @@ def get_improvement_recommendations(study_hours: float, attendance: float, sleep
             new_pred = max(0.0, min(100.0, new_pred))
             improvement = new_pred - predicted_marks
             recommendations.append({
-                "action": f"📱 Reduce Internet Usage",
+                "action": "📱 Reduce Internet Usage",
                 "current": f"{internet_usage:.1f} hrs/day",
                 "target": f"{new_internet:.1f} hrs/day",
                 "impact": f"+{improvement:.1f} marks",
@@ -503,7 +502,7 @@ def get_improvement_recommendations(study_hours: float, attendance: float, sleep
             new_pred = max(0.0, min(100.0, new_pred))
             improvement = new_pred - predicted_marks
             recommendations.append({
-                "action": f"😴 Optimize Sleep",
+                "action": "😴 Optimize Sleep",
                 "current": f"{sleep_hours:.1f} hrs/day",
                 "target": f"{new_sleep:.1f} hrs/day",
                 "impact": f"+{improvement:.1f} marks",
@@ -522,7 +521,7 @@ def get_improvement_recommendations(study_hours: float, attendance: float, sleep
         combined_improvement = combined_pred - predicted_marks
         
         recommendations.append({
-            "action": f"🚀 Combined Strategy",
+            "action": "🚀 Combined Strategy",
             "current": f"Study: {study_hours:.1f}h, Attend: {attendance:.1f}%, Sleep: {sleep_hours:.1f}h, Internet: {internet_usage:.1f}h",
             "target": f"Study: {new_study:.1f}h, Attend: {new_attendance:.1f}%, Sleep: {new_sleep:.1f}h, Internet: {new_internet:.1f}h",
             "impact": f"+{combined_improvement:.1f} marks",
