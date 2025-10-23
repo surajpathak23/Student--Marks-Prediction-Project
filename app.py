@@ -248,6 +248,29 @@ st.markdown("""
         margin-bottom: 0.5rem;
         font-size: 0.95rem;
     }
+    
+    /* Improvement card */
+    .improvement-card {
+        background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(33, 150, 243, 0.1));
+        border: 2px solid rgba(76, 175, 80, 0.3);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+    
+    .improvement-title {
+        color: #4caf50;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    
+    .improvement-action {
+        background: rgba(255, 255, 255, 0.05);
+        border-left: 3px solid #ff006e;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 4px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -388,7 +411,6 @@ def calculate_study_efficiency(study_hours: float, attendance: float, sleep_hour
     """Calculate a study efficiency score based on input factors"""
     efficiency = 0
     
-    # Study hours contribution (max 30 points)
     if study_hours >= 6:
         efficiency += 30
     elif study_hours >= 4:
@@ -398,10 +420,8 @@ def calculate_study_efficiency(study_hours: float, attendance: float, sleep_hour
     else:
         efficiency += 5
     
-    # Attendance contribution (max 30 points)
     efficiency += (attendance / 100) * 30
     
-    # Sleep hours contribution (max 15 points)
     if 7 <= sleep_hours <= 9:
         efficiency += 15
     elif 6 <= sleep_hours < 7 or 9 < sleep_hours <= 10:
@@ -409,7 +429,6 @@ def calculate_study_efficiency(study_hours: float, attendance: float, sleep_hour
     else:
         efficiency += 5
     
-    # Internet usage penalty (max -15 points)
     if internet_usage > 6:
         efficiency -= 15
     elif internet_usage > 4:
@@ -418,6 +437,100 @@ def calculate_study_efficiency(study_hours: float, attendance: float, sleep_hour
         efficiency -= 5
     
     return max(0, min(100, efficiency))
+
+
+def get_improvement_recommendations(study_hours: float, attendance: float, sleep_hours: float, internet_usage: float, predicted_marks: float, previous_marks: float, model) -> list[dict]:
+    """Generate specific improvement actions to reach target marks"""
+    recommendations = []
+    improvement_gap = previous_marks - predicted_marks
+    target_marks = max(previous_marks + 4, 80)  # Target is at least 4 points above previous or 80
+    
+    # If predicted is lower than previous, suggest improvements
+    if improvement_gap > 0:
+        # Study hours improvement
+        if study_hours < 5:
+            new_study_hours = min(study_hours + 1.5, 6)
+            features = np.array([[new_study_hours, attendance, sleep_hours, internet_usage, previous_marks]])
+            new_pred = float(model.predict(features)[0])
+            new_pred = max(0.0, min(100.0, new_pred))
+            improvement = new_pred - predicted_marks
+            recommendations.append({
+                "action": f"📚 Increase Study Hours",
+                "current": f"{study_hours:.1f} hrs/day",
+                "target": f"{new_study_hours:.1f} hrs/day",
+                "impact": f"+{improvement:.1f} marks",
+                "new_score": f"{new_pred:.1f}",
+                "description": f"Increasing study hours from {study_hours:.1f} to {new_study_hours:.1f} hours per day could boost your marks to {new_pred:.1f}"
+            })
+        
+        # Attendance improvement
+        if attendance < 95:
+            new_attendance = min(attendance + 5, 100)
+            features = np.array([[study_hours, new_attendance, sleep_hours, internet_usage, previous_marks]])
+            new_pred = float(model.predict(features)[0])
+            new_pred = max(0.0, min(100.0, new_pred))
+            improvement = new_pred - predicted_marks
+            recommendations.append({
+                "action": f"📍 Improve Attendance",
+                "current": f"{attendance:.1f}%",
+                "target": f"{new_attendance:.1f}%",
+                "impact": f"+{improvement:.1f} marks",
+                "new_score": f"{new_pred:.1f}",
+                "description": f"Improving attendance from {attendance:.1f}% to {new_attendance:.1f}% could boost your marks to {new_pred:.1f}"
+            })
+        
+        # Internet usage reduction
+        if internet_usage > 2:
+            new_internet = max(internet_usage - 1.5, 0.5)
+            features = np.array([[study_hours, attendance, sleep_hours, new_internet, previous_marks]])
+            new_pred = float(model.predict(features)[0])
+            new_pred = max(0.0, min(100.0, new_pred))
+            improvement = new_pred - predicted_marks
+            recommendations.append({
+                "action": f"📱 Reduce Internet Usage",
+                "current": f"{internet_usage:.1f} hrs/day",
+                "target": f"{new_internet:.1f} hrs/day",
+                "impact": f"+{improvement:.1f} marks",
+                "new_score": f"{new_pred:.1f}",
+                "description": f"Reducing internet usage from {internet_usage:.1f} to {new_internet:.1f} hours per day could boost your marks to {new_pred:.1f}"
+            })
+        
+        # Sleep optimization
+        if sleep_hours < 7 or sleep_hours > 9:
+            new_sleep = 8.0
+            features = np.array([[study_hours, attendance, new_sleep, internet_usage, previous_marks]])
+            new_pred = float(model.predict(features)[0])
+            new_pred = max(0.0, min(100.0, new_pred))
+            improvement = new_pred - predicted_marks
+            recommendations.append({
+                "action": f"😴 Optimize Sleep",
+                "current": f"{sleep_hours:.1f} hrs/day",
+                "target": f"{new_sleep:.1f} hrs/day",
+                "impact": f"+{improvement:.1f} marks",
+                "new_score": f"{new_pred:.1f}",
+                "description": f"Optimizing sleep to {new_sleep:.1f} hours per day could boost your marks to {new_pred:.1f}"
+            })
+        
+        # Combined improvement
+        new_study = min(study_hours + 1.5, 6)
+        new_attendance = min(attendance + 5, 100)
+        new_internet = max(internet_usage - 1.5, 0.5)
+        new_sleep = 8.0
+        features = np.array([[new_study, new_attendance, new_sleep, new_internet, previous_marks]])
+        combined_pred = float(model.predict(features)[0])
+        combined_pred = max(0.0, min(100.0, combined_pred))
+        combined_improvement = combined_pred - predicted_marks
+        
+        recommendations.append({
+            "action": f"🚀 Combined Strategy",
+            "current": f"Study: {study_hours:.1f}h, Attend: {attendance:.1f}%, Sleep: {sleep_hours:.1f}h, Internet: {internet_usage:.1f}h",
+            "target": f"Study: {new_study:.1f}h, Attend: {new_attendance:.1f}%, Sleep: {new_sleep:.1f}h, Internet: {new_internet:.1f}h",
+            "impact": f"+{combined_improvement:.1f} marks",
+            "new_score": f"{combined_pred:.1f}",
+            "description": f"Implementing all improvements together could boost your marks to {combined_pred:.1f} - reaching your target!"
+        })
+    
+    return recommendations
 
 
 def get_study_recommendations(study_hours: float, attendance: float, sleep_hours: float, internet_usage: float, predicted_marks: float, previous_marks: float) -> list[str]:
@@ -670,23 +783,13 @@ with st.container(border=True):
         previous_marks = st.number_input("Previous Marks", min_value=0.0, max_value=100.0, value=65.0, step=1.0, label_visibility="visible")
         st.caption("📊 Based on last exam/assessment")
     
-    # Row 2: Study Hours, Internet Usage
     col1, col2, col3 = st.columns(3, gap="medium")
     with col1:
         study_hours = st.number_input("Study Hours (per day)", min_value=0.0, max_value=16.0, value=4.0, step=0.5, label_visibility="visible")
     with col2:
         internet_usage = st.number_input("Internet Usage (hrs/day)", min_value=0.0, max_value=16.0, value=3.0, step=0.5, label_visibility="visible")
     with col3:
-        pass
-    
-    # Row 3: Sleep Hours
-    col1, col2, col3 = st.columns(3, gap="medium")
-    with col1:
         sleep_hours = st.number_input("Sleep Hours (per day)", min_value=0.0, max_value=16.0, value=7.0, step=0.5, label_visibility="visible")
-    with col2:
-        pass
-    with col3:
-        pass
     
     # Predict button - full width
     predict_btn = st.button("🔮 Predict Marks", type="primary", use_container_width=True)
@@ -705,6 +808,7 @@ with st.container(border=True):
             efficiency = calculate_study_efficiency(study_hours, attendance, sleep_hours, internet_usage)
             recommendations = get_study_recommendations(study_hours, attendance, sleep_hours, internet_usage, pred, previous_marks)
             schedule_tips = get_study_schedule_tips(study_hours, attendance)
+            improvement_recs = get_improvement_recommendations(study_hours, attendance, sleep_hours, internet_usage, pred, previous_marks, model)
 
             st.success("Prediction complete!")
             
@@ -721,7 +825,7 @@ with st.container(border=True):
                 st.metric("Study Efficiency", f"{efficiency:.1f}%", delta=f"{efficiency - 50:.1f}%" if efficiency > 50 else None)
             with col2:
                 improvement = pred - previous_marks
-                st.metric("Expected Improvement", f"{improvement:+.1f}", delta=f"{improvement:+.1f} points")
+                st.metric("Expected Change", f"{improvement:+.1f}", delta=f"{improvement:+.1f} points")
             with col3:
                 confidence = st.session_state.get('model_meta', {}).get('r2', 0) * 100
                 st.metric("Model Confidence", f"{confidence:.1f}%")
@@ -736,9 +840,24 @@ with st.container(border=True):
             with col2:
                 st.info(f"**Predicted Marks:** {pred:.1f}")
             
-            st.markdown("### 💡 Personalized Recommendations")
+            st.markdown("### 💡 General Recommendations")
             for rec in recommendations:
                 st.info(rec)
+            
+            if improvement_recs:
+                st.markdown("### 🚀 How to Improve Your Marks")
+                for rec in improvement_recs:
+                    with st.container(border=True):
+                        st.markdown(f"**{rec['action']}**")
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Current", rec['current'])
+                        with col2:
+                            st.metric("Target", rec['target'])
+                        with col3:
+                            st.metric("Impact", rec['impact'])
+                        st.markdown(f"**Result:** {rec['description']}")
+                        st.markdown(f"**New Expected Score:** `{rec['new_score']}`")
             
             st.markdown("### 🕐 Study Schedule Tips")
             for tip in schedule_tips:
